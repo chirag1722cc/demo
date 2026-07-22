@@ -1,0 +1,33 @@
+Confirmed Flow
+1. Angular        User clicks "Start New Memo"
+2. uailm          POST /generate → XADD to outbound stream → returns jobId
+3. ucldd          Consumes outbound stream → sends ACK to inbound stream
+4. uailm          Stream listener on inbound → reads ACK → updates DB (IN_PROGRESS)
+5. Angular        UI flips to "In Process" (via SSE push or poll)
+6. LLM            Processes ~20 min
+7. ucldd          Publishes final RESPONSE to inbound stream
+8. uailm          Stream listener reads RESPONSE → processes → updates DB (COMPLETED)
+9. Angular        UI flips to "Completed" + shows memo result
+Let Me Clarify 3 Things Before I Generate
+How should Angular be notified for step 5 and step 9?
+SSE push (instant) + polling fallback
+For the memo result in step 9, what does uailm do with it?
+Store raw content in DB and display as-is
+Multiple Azure ASP instances (multi-instance)?
+Yes — need Redis Pub/Sub fan-out for SSE
+
+Use Case → Code Mapping
+Step	What happens	Code
+1	User clicks "Start New Memo"	credit-memo.component.ts → onStartNewMemo()
+2	Request sent to outbound queue	OutboundStreamService.publish() → XADD
+3	ucldd sends ACK to inbound queue	ucldd's responsibility
+4	uailm reads ACK, updates DB	InboundStreamListener.handleAck() → markInProgress()
+5	Angular flips to "In Process"	MemoNotificationPublisher → Pub/Sub → MemoNotificationSubscriber → SSE push
+6	LLM processes	ucldd/LLM responsibility
+7	ucldd publishes RESPONSE	ucldd's responsibility
+8	uailm reads RESPONSE, updates DB	InboundStreamListener.handleResponse() → markCompleted()
+9	Angular flips to "Completed"	Same Pub/Sub → SSE push → credit-memo.component.ts handleEvent('COMPLETED')
+Key Things to Note
+HOSTNAME env var is set automatically by Azure ASP per instance — no config needed, consumer names are unique out of the box
+SSE drops (tab background, network blip) → Angular automatically switches to polling fallback in connectAndListen()
+/events/{jobId} sends current status immediately on connect — so page refresh doesn't leave Angular in a blank state
