@@ -1,0 +1,97 @@
+<!-- credit-memo.component.html -->
+<div class="memo-container">
+  <div class="memo-card">
+
+    <h2 class="memo-title">Credit Memo Generation</h2>
+
+    <!-- ── Step 1: IDLE — form ──────────────────────────────────────────── -->
+    <ng-container *ngIf="viewState === 'idle'">
+      <div class="form-group">
+        <label for="customerId">Customer ID</label>
+        <input id="customerId" type="text" [(ngModel)]="customerId"
+               placeholder="e.g. CUST-00123" class="form-input" />
+      </div>
+
+      <div class="form-group">
+        <label for="requestDetails">Request Details</label>
+        <textarea id="requestDetails" [(ngModel)]="requestDetails"
+                  rows="5" placeholder="Describe the credit memo details..."
+                  class="form-input textarea"></textarea>
+      </div>
+
+      <button class="btn btn-primary" (click)="onStartNewMemo()"
+              [disabled]="!customerId.trim() || !requestDetails.trim()">
+        Start New Memo
+      </button>
+    </ng-container>
+
+    <!-- ── Step 2: SUBMITTING ────────────────────────────────────────────── -->
+    <ng-container *ngIf="viewState === 'submitting'">
+      <div class="status-block">
+        <div class="spinner"></div>
+        <p class="status-label">{{ uiMessage }}</p>
+      </div>
+    </ng-container>
+
+    <!-- ── Step 3: WAITING FOR ACK ──────────────────────────────────────── -->
+    <ng-container *ngIf="viewState === 'waiting_ack'">
+      <div class="status-block">
+        <div class="spinner"></div>
+        <p class="status-label">{{ uiMessage }}</p>
+        <p class="status-sub">Connecting to processing system...</p>
+        <div class="job-chip">Job ID: <strong>{{ jobId }}</strong></div>
+      </div>
+    </ng-container>
+
+    <!-- ── Step 5: IN PROGRESS (ACK received from ucldd) ────────────────── -->
+    <ng-container *ngIf="viewState === 'in_progress'">
+      <div class="status-block">
+        <div class="progress-ring">
+          <svg viewBox="0 0 44 44">
+            <circle cx="22" cy="22" r="18" class="ring-bg" />
+            <circle cx="22" cy="22" r="18" class="ring-progress" />
+          </svg>
+        </div>
+        <p class="status-label in-progress">In Process</p>
+        <p class="status-sub">{{ uiMessage }}</p>
+        <p class="status-sub muted">This may take up to 20 minutes.</p>
+        <div class="job-chip">Job ID: <strong>{{ jobId }}</strong></div>
+      </div>
+    </ng-container>
+
+    <!-- ── Step 9: COMPLETED ─────────────────────────────────────────────── -->
+    <ng-container *ngIf="viewState === 'completed'">
+      <div class="status-block">
+        <div class="status-icon success">✓</div>
+        <p class="status-label success">Completed</p>
+        <p class="status-sub">{{ uiMessage }}</p>
+      </div>
+
+      <div class="result-box">
+        <div class="result-header">
+          <span>Credit Memo</span>
+          <button class="btn-copy" (click)="copyResult()">Copy</button>
+        </div>
+        <pre class="result-content">{{ resultContent }}</pre>
+      </div>
+
+      <button class="btn btn-secondary" (click)="onReset()">
+        Start New Memo
+      </button>
+    </ng-container>
+
+    <!-- ── FAILED ─────────────────────────────────────────────────────────── -->
+    <ng-container *ngIf="viewState === 'failed'">
+      <div class="status-block">
+        <div class="status-icon error">✕</div>
+        <p class="status-label error">Generation Failed</p>
+        <p class="error-detail">{{ errorMessage }}</p>
+      </div>
+
+      <button class="btn btn-secondary" (click)="onReset()">
+        Try Again
+      </button>
+    </ng-container>
+
+  </div>
+</div>

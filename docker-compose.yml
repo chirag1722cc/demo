@@ -1,0 +1,27 @@
+version: '3.8'
+
+services:
+
+  redis:
+    image: redis:7-alpine
+    container_name: uailm-redis
+    ports:
+      - "6379:6379"
+    command: redis-server --save 60 1
+    volumes:
+      - redis-data:/data
+
+  sqlserver:
+    image: mcr.microsoft.com/mssql/server:2022-latest
+    container_name: uailm-sqlserver
+    ports:
+      - "1433:1433"
+    environment:
+      ACCEPT_EULA: Y
+      SA_PASSWORD: YourStrong@Passw0rd
+    volumes:
+      - sql-data:/var/opt/mssql
+
+volumes:
+  redis-data:
+  sql-data:

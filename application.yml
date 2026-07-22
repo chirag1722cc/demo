@@ -1,0 +1,55 @@
+spring:
+  application:
+    name: uailm
+
+  datasource:
+    url: jdbc:sqlserver://${AZURE_SQL_HOST}:1433;databaseName=${AZURE_SQL_DB};encrypt=true;trustServerCertificate=false
+    username: ${AZURE_SQL_USERNAME}
+    password: ${AZURE_SQL_PASSWORD}
+    driver-class-name: com.microsoft.sqlserver.jdbc.SQLServerDriver
+
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: false
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.SQLServerDialect
+
+  # Azure Managed Redis — Streams + Pub/Sub + Cache
+  data:
+    redis:
+      host: ${REDIS_HOST}
+      port: 6380
+      password: ${REDIS_PASSWORD}
+      ssl:
+        enabled: true
+      timeout: 5000ms
+      lettuce:
+        pool:
+          max-active: 16
+          max-idle: 8
+          min-idle: 2
+
+app:
+  redis:
+    # Outbound: uailm → ucldd
+    outbound-stream: credit-memo-request-stream
+    # Inbound: ucldd → uailm (ACK + RESPONSE both arrive here)
+    inbound-stream: credit-memo-response-stream
+    # Consumer group config — HOSTNAME env var is set automatically by Azure ASP per instance
+    consumer-group: uailm-consumers
+    consumer-name: ${HOSTNAME:uailm-local}
+    # Pub/Sub channel for SSE fan-out across instances
+    notification-channel: uailm-memo-notifications
+    # Status cache TTL
+    status-ttl-hours: 4
+
+  job:
+    timeout-minutes: 25
+
+  cors:
+    allowed-origins: ${CORS_ALLOWED_ORIGINS:http://localhost:4200}
+
+server:
+  port: 8080
